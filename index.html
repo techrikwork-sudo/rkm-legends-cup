@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>RKM Legends Cup 2027 | Kolkata Turf</title>
+  
+  <!-- Manifest & Meta tags for PWA / PWABuilder -->
+  <meta name="theme-color" content="#070B19">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="data:application/manifest+json,{
+    %22name%22:%22RKM%20Legends%20Cup%202027%22,
+    %22short_name%22:%22RKMCup%22,
+    %22start_url%22:%22.%22,
+    %22display%22:%22standalone%22,
+    %22background_color%22:%22%23070B19%22,
+    %22theme_color%22:%22%23F59E0B%22,
+    %22orientation%22:%22portrait%22
+  }">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            stadium: '#070B19',
+            cardbg: '#0F172A',
+            panelbg: '#1E293B',
+            gold: '#F59E0B',
+            goldlight: '#FDE68A',
+            turf: '#10B981',
+            pitchcard: '#162032'
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- React 18 & Babel Standalone -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Hardware Camera QR Scanner -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+  <style>
+    body {
+      background-color: #070B19;
+      color: #F8FAFC;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      touch-action: manipulation;
+    }
+    .gold-glow {
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.25);
+    }
+    .turf-glow {
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.25);
+    }
+    /* Hide scrollbar on mobile horizontal bars */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-stadium text-slate-100 min-h-screen">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useMemo } = React;
+
+    // Paste your deployed Google Apps Script Web App URL here
+    const APPS_SCRIPT_URL = "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE";
+
+    // Fallback seed data if offline or sheet URL is not yet connected
+    const INITIAL_PLAYERS = [
+      { "Player_ID": "RKM-4172-RIT", "Full Name": "Ritabrata Duary", "Contact Number / WhatsApp Number": "9876544172", "Primary Playing Position": "Midfielder (Playmaker)", "Jersey Size": "L", "Name to Print on Jersey Back": "DUARY", "Jersey Number": "10", "Assigned Team": "Team Baranagar", "Attendance Check-In": "PENDING", "Refund Status": "UNPAID" },
+      { "Player_ID": "RKM-8821-SRI", "Full Name": "Srijan Mridha", "Contact Number / WhatsApp Number": "9876548821", "Primary Playing Position": "Forward / Striker", "Jersey Size": "M", "Name to Print on Jersey Back": "SRIJAN", "Jersey Number": "7", "Assigned Team": "Team Baranagar", "Attendance Check-In": "PENDING", "Refund Status": "UNPAID" },
+      { "Player_ID": "RKM-3319-GOP", "Full Name": "Gopal Hazra", "Contact Number / WhatsApp Number": "9876543319", "Primary Playing Position": "Defender (Stopper)", "Jersey Size": "XL", "Name to Print on Jersey Back": "HAZRA", "Jersey Number": "4", "Assigned Team": "Team Sarada", "Attendance Check-In": "PENDING", "Refund Status": "UNPAID" },
+      { "Player_ID": "RKM-1104-ARK", "Full Name": "Arkadeep Paul", "Contact Number / WhatsApp Number": "9876541104", "Primary Playing Position": "Goalkeeper", "Jersey Size": "L", "Name to Print on Jersey Back": "ARKA", "Jersey Number": "1", "Assigned Team": "Team Sarada", "Attendance Check-In": "CHECKED_IN", "Refund Status": "REFUNDED (₹100 - CASH)" }
+    ];
+
+    const INITIAL_FIXTURES = [
+      { "Match ID": "M01", "Round": "Group Stage", "Date": "May 23, 2027", "Time": "09:00 AM", "Team A": "Team Baranagar", "Team B": "Team Sarada", "Venue / Turf": "Pitch 1 (North)", "Score A": 3, "Score B": 2, "Winner": "Team Baranagar", "Status": "Completed" },
+      { "Match ID": "M02", "Round": "Group Stage", "Date": "May 23, 2027", "Time": "09:40 AM", "Team A": "Team Belur", "Team B": "Team Narendrapur", "Venue / Turf": "Pitch 1 (North)", "Score A": 1, "Score B": 1, "Winner": "", "Status": "Live Now" },
+      { "Match ID": "M03", "Round": "Semi-Final 1", "Date": "May 23, 2027", "Time": "11:30 AM", "Team A": "Team Baranagar", "Team B": "Team Belur", "Venue / Turf": "Pitch 1 (North)", "Score A": 0, "Score B": 0, "Winner": "", "Status": "Upcoming" }
+    ];
+
+    const INITIAL_EVENTS = [
+      { "Event_ID": "EV01", "Match_ID": "M01", "Player_ID": "RKM-8821-SRI", "Team": "Team Baranagar", "Event_Type": "Goal", "Minute": "7" },
+      { "Event_ID": "EV02", "Match_ID": "M01", "Player_ID": "RKM-4172-RIT", "Team": "Team Baranagar", "Event_Type": "Assist", "Minute": "7" },
+      { "Event_ID": "EV03", "Match_ID": "M01", "Player_ID": "RKM-8821-SRI", "Team": "Team Baranagar", "Event_Type": "Goal", "Minute": "14" },
+      { "Event_ID": "EV04", "Match_ID": "M01", "Player_ID": "RKM-3319-GOP", "Team": "Team Sarada", "Event_Type": "Yellow Card", "Minute": "22" }
+    ];
+
+    function App() {
+      // Navigation & Role states
+      const [activeTab, setActiveTab] = useState('matchcenter'); // 'matchcenter', 'leaderboard', 'squads', 'checkin'
+      const [isAdmin, setIsAdmin] = useState(false);
+      const [adminUser, setAdminUser] = useState('');
+      const [showPinModal, setShowPinModal] = useState(false);
+      const [pinInput, setPinInput] = useState('');
+      const [pinError, setPinError] = useState('');
+      
+      // Core Data Collections
+      const [players, setPlayers] = useState(INITIAL_PLAYERS);
+      const [fixtures, setFixtures] = useState(INITIAL_FIXTURES);
+      const [events, setEvents] = useState(INITIAL_EVENTS);
+      const [managers, setManagers] = useState([]);
+      const [isSyncing, setIsSyncing] = useState(false);
+      const [notification, setNotification] = useState('');
+
+      // Match Engine States
+      const [activeMatch, setActiveMatch] = useState(INITIAL_FIXTURES[1]);
+      const [matchSeconds, setMatchSeconds] = useState(0);
+      const [isTimerRunning, setIsTimerRunning] = useState(false);
+      const [extraMinutes, setExtraMinutes] = useState(0);
+      const [shootoutMode, setShootoutMode] = useState(false);
+      const [penaltiesA, setPenaltiesA] = useState([]);
+      const [penaltiesB, setPenaltiesB] = useState([]);
+
+      // Check-In Desk States
+      const [searchQuery, setSearchQuery] = useState('');
+      const [scannedPlayer, setScannedPlayer] = useState(null);
+      const [cameraActive, setCameraActive] = useState(false);
+      const scannerRef = useRef(null);
+
+      // Trigger Lucide icon replacements on render
+      useEffect(() => {
+        if (window.lucide) window.lucide.createIcons();
+      });
+
+      // Restore session
+      useEffect(() => {
+        const storedAdmin = localStorage.getItem('rkm_admin_session');
+        if (storedAdmin) {
+          setIsAdmin(true);
+          setAdminUser(storedAdmin);
+        }
+        fetchLiveSheetData();
+      }, []);
+
+      // Pull fresh data from Google Apps Script
+      const fetchLiveSheetData = async () => {
+        if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL === "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE") return;
+        setIsSyncing(true);
+        try {
+          const res = await fetch(`${APPS_SCRIPT_URL}?action=getAllData`);
+          const result = await res.json();
+          if (result.status === 'success') {
+            if (result.data.players?.length) setPlayers(result.data.players);
+            if (result.data.fixtures?.length) setFixtures(result.data.fixtures);
+            if (result.data.events?.length) setEvents(result.data.events);
+            if (result.data.managers?.length) setManagers(result.data.managers);
+          }
+        } catch (err) {
+          console.warn("Using offline memory dataset:", err);
+        } finally {
+          setIsSyncing(false);
+        }
+      };
+
+      // Match Clock Interval
+      useEffect(() => {
+        let interval = null;
+        if (isTimerRunning) {
+          interval = setInterval(() => {
+            setMatchSeconds(prev => prev + 1);
+          }, 1000);
+        } else {
+          clearInterval(interval);
+        }
+        return () => clearInterval(interval);
+      }, [isTimerRunning]);
+
+      // Handle Admin PIN Unlock
+      const handleVerifyPin = () => {
+        // Fallback Committee Master PINs: 1922 (Belur Math founding year) or 2027
+        if (pinInput === '1922' || pinInput === '2027') {
+          setIsAdmin(true);
+          setAdminUser('Desk Official (Ritabrata/Srijan/Gopal)');
+          localStorage.setItem('rkm_admin_session', 'Desk Official');
+          setShowPinModal(false);
+          setPinInput('');
+          setPinError('');
+          showToast('Admin Mode Active. Controls Unlocked.');
+          return;
+        }
+
+        // Check remote backend if configured
+        if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE") {
+          fetch(`${APPS_SCRIPT_URL}?action=verifyPin&pin=${pinInput}`)
+            .then(res => res.json())
+            .then(res => {
+              if (res.authorized) {
+                setIsAdmin(true);
+                setAdminUser(res.user);
+                localStorage.setItem('rkm_admin_session', res.user);
+                setShowPinModal(false);
+                setPinInput('');
+                setPinError('');
+                showToast(`Authenticated: ${res.user}`);
+              } else {
+                setPinError('Invalid Committee PIN');
+              }
+            })
+            .catch(() => setPinError('PIN verification failed'));
+        } else {
+          setPinError('Invalid Committee PIN (Default: 1922)');
+        }
+      };
+
+      const handleLogout = () => {
+        setIsAdmin(false);
+        setAdminUser('');
+        localStorage.removeItem('rkm_admin_session');
+        showToast('Logged out of Admin Mode');
+      };
+
+      const showToast = (msg) => {
+        setNotification(msg);
+        setTimeout(() => setNotification(''), 3500);
+      };
+
+      // Player Check-in and Refund
+      const processPlayerCheckin = async (player, method) => {
+        // Optimistic UI Update
+        const updated = players.map(p => {
+          if (p.Player_ID === player.Player_ID) {
+            return {
+              ...p,
+              "Attendance Check-In": "CHECKED_IN",
+              "Refund Status": `REFUNDED (₹100 - ${method})`
+            };
+          }
+          return p;
+        });
+        setPlayers(updated);
+        setScannedPlayer(null);
+        showToast(`✅ ${player['Full Name']} Checked-In | ₹100 ${method} Logged`);
+
+        // Remote Background Sync
+        if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE") {
+          fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+              action: 'checkInPlayer',
+              playerId: player.Player_ID,
+              refundMethod: method,
+              adminUser: adminUser
+            })
+          }).catch(e => console.error("Sync error:", e));
+        }
+      };
+
+      // Match Score & Event Logger
+      const recordEvent = (eventType, team, playerId = '') => {
+        if (!activeMatch) return;
+        const minute = Math.floor(matchSeconds / 60) + 1;
+        const newEvt = {
+          Event_ID: 'EV-' + Date.now().toString().slice(-5),
+          Match_ID: activeMatch['Match ID'],
+          Player_ID: playerId || 'TEAM',
+          Team: team,
+          Event_Type: eventType,
+          Minute: String(minute)
+        };
+
+        setEvents(prev => [...prev, newEvt]);
+
+        // If goal, update score directly
+        if (eventType === 'Goal') {
+          const isA = team === activeMatch['Team A'];
+          const updatedScoreA = isA ? Number(activeMatch['Score A']) + 1 : Number(activeMatch['Score A']);
+          const updatedScoreB = !isA ? Number(activeMatch['Score B']) + 1 : Number(activeMatch['Score B']);
+          
+          const updatedFixture = {
+            ...activeMatch,
+            'Score A': updatedScoreA,
+            'Score B': updatedScoreB
+          };
+          setActiveMatch(updatedFixture);
+          setFixtures(fixtures.map(f => f['Match ID'] === activeMatch['Match ID'] ? updatedFixture : f));
+
+          // Background POST
+          if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE") {
+            fetch(APPS_SCRIPT_URL, {
+              method: 'POST',
+              body: JSON.stringify({
+                action: 'updateScore',
+                matchId: activeMatch['Match ID'],
+                scoreA: updatedScoreA,
+                scoreB: updatedScoreB,
+                status: activeMatch.Status,
+                adminUser: adminUser
+              })
+            }).catch(e => console.error(e));
+          }
+        }
+
+        showToast(`Logged: ${eventType} (${team}) at ${minute}'`);
+
+        // Post Event
+        if (APPS_SCRIPT_URL && APPS_SCRIPT_URL !== "YOUR_APPS_SCRIPT_WEB_APP_URL_HERE") {
+          fetch(APPS_SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify({
+              action: 'recordMatchEvent',
+              matchId: activeMatch['Match ID'],
+              playerId: playerId,
+              team: team,
+              eventType: eventType,
+              minute: minute,
+              adminUser: adminUser
+            })
+          }).catch(e => console.error(e));
+        }
+      };
+
+      // Leaderboard Calculations
+      const leaderboards = useMemo(() => {
+        const goals = {};
+        const assists = {};
+        const cards = {};
+
+        events.forEach(ev => {
+          const pid = ev.Player_ID;
+          if (!pid || pid === 'TEAM') return;
+
+          if (ev.Event_Type === 'Goal') goals[pid] = (goals[pid] || 0) + 1;
+          if (ev.Event_Type === 'Assist') assists[pid] = (assists[pid] || 0) + 1;
+          if (ev.Event_Type === 'Yellow Card') cards[pid] = (cards[pid] || 0) + 1;
+          if (ev.Event_Type === 'Red Card') cards[pid] = (cards[pid] || 0) + 3; // 1 Red = automatic suspension flag
+        });
+
+        const getPlayerDetails = (id) => players.find(p => p.Player_ID === id) || { "Full Name": id, "Assigned Team": "N/A" };
+
+        const goldenBoot = Object.entries(goals).map(([id, count]) => ({
+          ...getPlayerDetails(id), count
+        })).sort((a,b) => b.count - a.count);
+
+        const playmakers = Object.entries(assists).map(([id, count]) => ({
+          ...getPlayerDetails(id), count
+        })).sort((a,b) => b.count - a.count);
+
+        const disciplinary = Object.entries(cards).map(([id, pts]) => ({
+          ...getPlayerDetails(id), pts
+        })).sort((a,b) => b.pts - a.pts);
+
+        return { goldenBoot, playmakers, disciplinary };
+      }, [events, players]);
+
+      // Hardware QR Camera Trigger
+      const toggleCamera = () => {
+        if (cameraActive) {
+          if (scannerRef.current) {
+            scannerRef.current.stop().then(() => {
+              setCameraActive(false);
+            }).catch(err => console.error(err));
+          }
+        } else {
+          setCameraActive(true);
+          setTimeout(() => {
+            const html5QrCode = new Html5Qrcode("reader");
+            scannerRef.current = html5QrCode;
+            html5QrCode.start(
+              { facingMode: "environment" },
+              { fps: 10, qrbox: { width: 250, height: 250 } },
+              (decodedText) => {
+                // QR scanned successfully
+                const found = players.find(p => p.Player_ID.toUpperCase() === decodedText.trim().toUpperCase());
+                if (found) {
+                  setScannedPlayer(found);
+                  // stop camera after hit
+                  html5QrCode.stop().then(() => setCameraActive(false));
+                } else {
+                  showToast(`Unrecognized ID: ${decodedText}`);
+                }
+              },
+              (err) => { /* scanning search frames */ }
+            ).catch(err => {
+              console.error("Camera access failed", err);
+              showToast("Camera access denied or unavailable");
+              setCameraActive(false);
+            });
+          }, 300);
+        }
+      };
+
+      const formatTime = (secs) => {
+        const m = Math.floor(secs / 60);
+        const s = secs % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+      };
+
+      // Filtered players for manual fallback check-in search
+      const filteredSearchPlayers = players.filter(p => {
+        const q = searchQuery.toLowerCase();
+        return (
+          p['Full Name']?.toLowerCase().includes(q) ||
+          p.Player_ID?.toLowerCase().includes(q) ||
+          p['Contact Number / WhatsApp Number']?.includes(q)
+        );
+      });
+
+      return (
+        <div className="max-w-md mx-auto pb-24 pt-2 px-3 select-none">
+          {/* Header */}
+          <header className="flex justify-between items-center py-3 border-b border-slate-800">
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 rounded-full bg-gold/20 flex items-center justify-center border border-gold">
+                <i data-lucide="trophy" className="w-4 h-4 text-gold"></i>
+              </div>
+              <div>
+                <h1 className="text-sm font-black uppercase tracking-wider text-slate-100 flex items-center">
+                  RKM Legends Cup
+                  <span className="ml-1.5 px-1.5 py-0.2 bg-gold/10 text-gold text-[10px] font-bold rounded border border-gold/30">2027</span>
+                </h1>
+                <p className="text-[10px] text-slate-400">Kolkata Turf • 5-A-Side Championship</p>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <button 
+                onClick={fetchLiveSheetData} 
+                className={`p-1.5 rounded-lg bg-cardbg border border-slate-700 text-slate-300 hover:text-white ${isSyncing ? 'animate-spin' : ''}`}
+                title="Sync Database"
+              >
+                <i data-lucide="refresh-cw" className="w-4 h-4"></i>
+              </button>
+              
+              {isAdmin ? (
+                <div className="flex items-center space-x-1.5">
+                  <span className="w-2 h-2 rounded-full bg-turf animate-ping"></span>
+                  <button 
+                    onClick={handleLogout}
+                    className="px-2 py-1 bg-red-950/60 border border-red-500/50 text-red-200 text-xs rounded-lg flex items-center space-x-1"
+                  >
+                    <i data-lucide="unlock" className="w-3 h-3 text-red-400"></i>
+                    <span className="text-[10px] font-bold">ADMIN</span>
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => setShowPinModal(true)}
+                  className="p-1.5 bg-cardbg border border-slate-700 text-slate-400 hover:text-gold rounded-lg flex items-center space-x-1"
+                  title="Committee Unlock"
+                >
+                  <i data-lucide="lock" className="w-4 h-4"></i>
+                </button>
+              )}
+            </div>
+          </header>
+
+          {/* Toast Notification */}
+          {notification && (
+            <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-gold text-slate-950 font-bold text-xs px-4 py-2 rounded-full shadow-lg border border-goldlight flex items-center space-x-1.5">
+              <i data-lucide="bell" className="w-3.5 h-3.5"></i>
+              <span>{notification}</span>
+            </div>
+          )}
+
+          {/* TAB 1: MATCH CENTER */}
+          {activeTab === 'matchcenter' && (
+            <div className="space-y-4 mt-3">
+              {/* Live Match Card */}
+              <div className="bg-gradient-to-b from-cardbg to-stadium rounded-2xl border border-slate-800 p-4 relative overflow-hidden">
+                <div className="flex justify-between items-center text-[11px] text-slate-400 uppercase font-semibold mb-3">
+                  <span className="flex items-center text-turf">
+                    <span className="w-1.5 h-1.5 rounded-full bg-turf mr-1.5 animate-pulse"></span>
+                    {activeMatch.Status} • {activeMatch.Round}
+                  </span>
+                  <span>{activeMatch['Venue / Turf']}</span>
+                </div>
+
+                {/* Scoreboard Display */}
+                <div className="grid grid-cols-7 items-center text-center my-2">
+                  <div className="col-span-3 text-right">
+                    <p className="font-bold text-sm text-slate-100 truncate">{activeMatch['Team A']}</p>
+                    <p className="text-[10px] text-slate-400">Light Navy</p>
+                  </div>
+                  <div className="col-span-1 flex flex-col items-center">
+                    <div className="bg-slate-900 border border-slate-700 px-3 py-1.5 rounded-xl font-mono text-2xl font-black text-gold">
+                      {activeMatch['Score A']}:{activeMatch['Score B']}
+                    </div>
+                  </div>
+                  <div className="col-span-3 text-left">
+                    <p className="font-bold text-sm text-slate-100 truncate">{activeMatch['Team B']}</p>
+                    <p className="text-[10px] text-slate-400">Crimson Gold</p>
+                  </div>
+                </div>
+
+                {/* Match Clock & Half Tracking */}
+                <div className="mt-4 pt-3 border-t border-slate-800/80 flex justify-between items-center">
+                  <div className="flex items-center space-x-2">
+                    <div className="font-mono text-xl font-bold text-slate-200">
+                      {formatTime(matchSeconds)}
+                    </div>
+                    {extraMinutes > 0 && (
+                      <span className="text-xs font-mono font-bold text-turf bg-turf/10 px-1.5 py-0.5 rounded border border-turf/30">
+                        +{extraMinutes}'
+                      </span>
+                    )}
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">
+                      {matchSeconds <= 900 ? "1st Half (15')" : "2nd Half (15')"}
+                    </span>
+                  </div>
+
+                  {isAdmin && (
+                    <div className="flex items-center space-x-1">
+                      <button 
+                        onClick={() => setIsTimerRunning(!isTimerRunning)}
+                        className={`p-1.5 rounded-lg border text-xs font-bold ${isTimerRunning ? 'bg-amber-950/60 border-amber-500 text-amber-200' : 'bg-turf/20 border-turf text-turf'}`}
+                      >
+                        {isTimerRunning ? <i data-lucide="pause" className="w-3.5 h-3.5"></i> : <i data-lucide="play" className="w-3.5 h-3.5"></i>}
+                      </button>
+                      <button 
+                        onClick={() => setExtraMinutes(prev => prev + 1)}
+                        className="px-2 py-1 bg-slate-800 border border-slate-700 text-slate-300 rounded-lg text-[10px] font-bold"
+                      >
+                        +1'
+                      </button>
+                      <button 
+                        onClick={() => { setMatchSeconds(0); setIsTimerRunning(false); setExtraMinutes(0); }}
+                        className="p-1.5 bg-slate-800 border border-slate-700 text-slate-400 hover:text-red-400 rounded-lg"
+                        title="Reset Clock"
+                      >
+                        <i data-lucide="rotate-ccw" className="w-3.5 h-3.5"></i>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Table Official Live Quick-Event Buttons (Admin Only) */}
+                {isAdmin && (
+                  <div className="mt-4 pt-3 border-t border-slate-800 space-y-2">
+                    <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Turf Desk Scorekeeper Console</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="bg-slate-900/80 p-2 rounded-xl border border-slate-800">
+                        <p className="text-[11px] font-bold text-slate-300 mb-1.5 truncate">{activeMatch['Team A']}</p>
+                        <div className="grid grid-cols-3 gap-1">
+                          <button onClick={() => recordEvent('Goal', activeMatch['Team A'])} className="py-1 bg-turf/20 border border-turf/40 text-turf text-[10px] font-bold rounded">
+                            +Goal
+                          </button>
+                          <button onClick={() => recordEvent('Yellow Card', activeMatch['Team A'])} className="py-1 bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 text-[10px] font-bold rounded">
+                            🟨 Card
+                          </button>
+                          <button onClick={() => recordEvent('Red Card', activeMatch['Team A'])} className="py-1 bg-red-500/20 border border-red-500/40 text-red-300 text-[10px] font-bold rounded">
+                            🟥 Card
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="bg-slate-900/80 p-2 rounded-xl border border-slate-800">
+                        <p className="text-[11px] font-bold text-slate-300 mb-1.5 truncate">{activeMatch['Team B']}</p>
+                        <div className="grid grid-cols-3 gap-1">
+                          <button onClick={() => recordEvent('Goal', activeMatch['Team B'])} className="py-1 bg-turf/20 border border-turf/40 text-turf text-[10px] font-bold rounded">
+                            +Goal
+                          </button>
+                          <button onClick={() => recordEvent('Yellow Card', activeMatch['Team B'])} className="py-1 bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 text-[10px] font-bold rounded">
+                            🟨 Card
+                          </button>
+                          <button onClick={() => recordEvent('Red Card', activeMatch['Team B'])} className="py-1 bg-red-500/20 border border-red-500/40 text-red-300 text-[10px] font-bold rounded">
+                            🟥 Card
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex justify-between items-center pt-2">
+                      <button 
+                        onClick={() => setShootoutMode(!shootoutMode)}
+                        className={`text-[10px] px-2.5 py-1 rounded border font-semibold ${shootoutMode ? 'bg-gold text-slate-950 border-gold' : 'bg-slate-800 text-slate-300 border-slate-700'}`}
+                      >
+                        ⚡ Knockout Penalty Mode
+                      </button>
+                      <button 
+                        onClick={() => {
+                          const winner = activeMatch['Score A'] > activeMatch['Score B'] ? activeMatch['Team A'] : activeMatch['Team B'];
+                          const finalMatch = { ...activeMatch, Status: 'Completed', Winner: winner };
+                          setActiveMatch(finalMatch);
+                          setFixtures(fixtures.map(f => f['Match ID'] === activeMatch['Match ID'] ? finalMatch : f));
+                          setIsTimerRunning(false);
+                          showToast(`Match Ended. Winner: ${winner}`);
+                        }}
+                        className="text-[10px] px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded font-bold"
+                      >
+                        Full-Time Whistle
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Penalty Shootout Console (Knockout Ties) */}
+              {shootoutMode && (
+                <div className="bg-panelbg border border-gold/40 rounded-2xl p-3 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-gold uppercase tracking-wider">Sudden Death Shootout</span>
+                    <span className="text-[10px] text-slate-400">5 Penalties Each</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-center">
+                    <div className="bg-stadium p-2 rounded-xl">
+                      <p className="text-xs font-bold truncate">{activeMatch['Team A']}</p>
+                      <div className="flex justify-center space-x-1 my-2">
+                        {penaltiesA.map((res, i) => (
+                          <span key={i} className={`w-3.5 h-3.5 rounded-full ${res ? 'bg-turf' : 'bg-red-500'}`}></span>
+                        ))}
+                      </div>
+                      {isAdmin && (
+                        <div className="flex justify-center space-x-1">
+                          <button onClick={() => setPenaltiesA([...penaltiesA, true])} className="px-2 py-0.5 bg-turf text-slate-950 font-bold text-xs rounded">✓</button>
+                          <button onClick={() => setPenaltiesA([...penaltiesA, false])} className="px-2 py-0.5 bg-red-600 text-white font-bold text-xs rounded">✕</button>
+                        </div>
+                      )}
+                    </div>
+                    <div className="bg-stadium p-2 rounded-xl">
+                      <p className="text-xs font-bold truncate">{activeMatch['Team B']}</p>
+                      <div className="flex justify-center space-x-1 my-2">
+                        {penaltiesB.map((res, i) => (
+                          <span key={i} className={`w-3.5 h-3.5 rounded-full ${res ? 'bg-turf' : 'bg-red-500'}`}></span>
+                        ))}
+                      </div>
+                      {isAdmin && (
+                        <div className="flex justify-center space-x-1">
+                          <button onClick={() => setPenaltiesB([...penaltiesB, true])} className="px-2 py-0.5 bg-turf text-slate-950 font-bold text-xs rounded">✓</button>
+                          <button onClick={() => setPenaltiesB([...penaltiesB, false])} className="px-2 py-0.5 bg-red-600 text-white font-bold text-xs rounded">✕</button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Tournament Fixtures Schedule */}
+              <div className="space-y-2">
+                <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center justify-between">
+                  <span>Match Schedule & Results</span>
+                  <span className="text-[10px] text-gold">{fixtures.length} Fixtures</span>
+                </h2>
+
+                {fixtures.map((f, i) => (
+                  <div 
+                    key={i} 
+                    onClick={() => { setActiveMatch(f); setMatchSeconds(0); setIsTimerRunning(false); }}
+                    className={`p-3 rounded-xl border transition-all cursor-pointer ${activeMatch['Match ID'] === f['Match ID'] ? 'bg-cardbg border-gold/60 gold-glow' : 'bg-pitchcard/70 border-slate-800/80 hover:border-slate-700'}`}
+                  >
+                    <div className="flex justify-between items-center text-[10px] text-slate-400 mb-1.5">
+                      <span className="font-semibold text-slate-300">{f.Round} • {f['Match ID']}</span>
+                      <span>{f.Time}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <div className="font-bold text-xs text-slate-200 truncate w-2/5">{f['Team A']}</div>
+                      <div className="px-2.5 py-0.5 bg-slate-900 border border-slate-700 rounded text-xs font-mono font-bold text-gold">
+                        {f.Status === 'Upcoming' ? 'VS' : `${f['Score A']} - ${f['Score B']}`}
+                      </div>
+                      <div className="font-bold text-xs text-slate-200 truncate w-2/5 text-right">{f['Team B']}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 2: LIVE LEADERBOARDS & AWARDS */}
+          {activeTab === 'leaderboard' && (
+            <div className="space-y-4 mt-3">
+              {/* Golden Boot (Top Scorers) */}
+              <div className="bg-cardbg rounded-2xl border border-slate-800 p-4">
+                <div className="flex items-center space-x-2 mb-3">
+                  <div className="p-1.5 rounded-lg bg-gold/20 text-gold border border-gold/40">
+                    <i data-lucide="award" className="w-4 h-4"></i>
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">Golden Boot Race</h3>
+                    <p className="text-[10px] text-slate-400">Top Individual Goal Scorers</p>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  {leaderboards.goldenBoot.length === 0 ? (
+                    <p className="text-center py-4 text-xs text-slate-500">No match goals recorded yet</p>
+                  ) : (
+                    leaderboards.goldenBoot.map((p, idx) => (
+                      <div key={idx} className="flex justify-between items-center p-2 rounded-xl bg-slate-900/60 border border-slate-800/70 text-xs">
+                        <div className="flex items-center space-x-2.5">
+                          <span className={`w-5 font-mono text-center font-bold ${idx === 0 ? 'text-gold' : 'text-slate-400'}`}>
+                            {idx + 1}
+                          </span>
+                          <div>
+                            <p className="font-bold text-slate-200">{p['Full Name']}</p>
+                            <p className="text-[10px] text-slate-400">{p['Assigned Team']}</p>
+                          </div>
+                        </div>
+                        <div className="font-mono font-black text-sm text-gold px-2 py-0.5 bg-gold/10 rounded border border-gold/20">
+                          {p.count} ⚽
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Top Playmakers (Assists) */}
+              <div className="bg-cardbg rounded-2xl border border-slate-800 p-4">
+                <div className="flex items-center space-x-2 mb-3">
+                  <div className="p-1.5 rounded-lg bg-blue-500/20 text-blue-400 border border-blue-500/40">
+                    <i data-lucide="sparkles" className="w-4 h-4"></i>
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">Top Playmakers</h3>
+                    <p className="text-[10px] text-slate-400">Assists & Key Chances Created</p>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  {leaderboards.playmakers.length === 0 ? (
+                    <p className="text-center py-4 text-xs text-slate-500">No assists logged yet</p>
+                  ) : (
+                    leaderboards.playmakers.map((p, idx) => (
+                      <div key={idx} className="flex justify-between items-center p-2 rounded-xl bg-slate-900/60 border border-slate-800/70 text-xs">
+                        <div className="flex items-center space-x-2.5">
+                          <span className="w-5 font-mono text-center font-bold text-slate-400">{idx + 1}</span>
+                          <div>
+                            <p className="font-bold text-slate-200">{p['Full Name']}</p>
+                            <p className="text-[10px] text-slate-400">{p['Assigned Team']}</p>
+                          </div>
+                        </div>
+                        <div className="font-mono font-bold text-sm text-blue-400 px-2 py-0.5 bg-blue-500/10 rounded">
+                          {p.count} 👟
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              {/* Disciplinary & Suspension Watch */}
+              <div className="bg-cardbg rounded-2xl border border-slate-800 p-4">
+                <div className="flex items-center space-x-2 mb-3">
+                  <div className="p-1.5 rounded-lg bg-red-500/20 text-red-400 border border-red-500/40">
+                    <i data-lucide="shield-alert" className="w-4 h-4"></i>
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">Disciplinary Ledger</h3>
+                    <p className="text-[10px] text-slate-400">Card Accumulation & Suspension Warnings</p>
+                  </div>
+                </div>
+
+                <div className="space-y-1.5">
+                  {leaderboards.disciplinary.length === 0 ? (
+                    <p className="text-center py-3 text-xs text-slate-500">100% Fair Play — Zero cards active</p>
+                  ) : (
+                    leaderboards.disciplinary.map((p, idx) => (
+                      <div key={idx} className="flex justify-between items-center p-2 rounded-xl bg-slate-900/60 border border-slate-800 text-xs">
+                        <div>
+                          <p className="font-bold text-slate-200">{p['Full Name']}</p>
+                          <p className="text-[10px] text-slate-400">{p['Assigned Team']}</p>
+                        </div>
+                        <div>
+                          {p.pts >= 2 ? (
+                            <span className="px-2 py-0.5 bg-red-950 border border-red-500 text-red-300 font-bold text-[10px] rounded-full animate-pulse">
+                              SUSPENDED NEXT MATCH
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 bg-yellow-950 border border-yellow-600 text-yellow-300 font-bold text-[10px] rounded-full">
+                              1 Yellow Warning
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 3: SQUADS & TACTICAL HUB */}
+          {activeTab === 'squads' && (
+            <div className="space-y-4 mt-3">
+              <div className="bg-cardbg rounded-2xl border border-slate-800 p-4">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">Tactical 5-A-Side Formations</h3>
+                <div className="grid grid-cols-3 gap-2 text-center text-[11px]">
+                  <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                    <p className="font-bold text-gold">1-2-1</p>
+                    <p className="text-[10px] text-slate-400">Diamond Control</p>
+                  </div>
+                  <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                    <p className="font-bold text-turf">2-1-1</p>
+                    <p className="text-[10px] text-slate-400">Pyramid Counter</p>
+                  </div>
+                  <div className="bg-slate-900 p-2.5 rounded-xl border border-slate-800">
+                    <p className="font-bold text-blue-400">2-2</p>
+                    <p className="text-[10px] text-slate-400">Solid Box</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Registered Player Cards */}
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Confirmed Rosters</h3>
+                  <span className="text-[10px] text-slate-400">{players.length} Players</span>
+                </div>
+
+                {players.map((p, i) => (
+                  <div key={i} className="p-3 bg-cardbg rounded-xl border border-slate-800 flex justify-between items-center">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-700 flex flex-col items-center justify-center font-mono font-bold text-gold text-xs">
+                        <span>#{p['Jersey Number'] || '—'}</span>
+                        <span className="text-[8px] text-slate-400">{p['Jersey Size'] || 'M'}</span>
+                      </div>
+                      <div>
+                        <div className="flex items-center space-x-1.5">
+                          <p className="font-bold text-xs text-slate-200">{p['Full Name']}</p>
+                          {p['Attendance Check-In'] === 'CHECKED_IN' && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-turf" title="Checked In"></span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-slate-400">{p['Primary Playing Position']}</p>
+                        <p className="text-[9px] text-gold font-mono">{p['Assigned Team'] || 'Unassigned'}</p>
+                      </div>
+                    </div>
+
+                    <div className="text-right">
+                      <a 
+                        href={`https://wa.me/91${p['Contact Number / WhatsApp Number']}`} 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="p-1.5 bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 rounded-lg inline-flex items-center"
+                      >
+                        <i data-lucide="message-circle" className="w-3.5 h-3.5"></i>
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* TAB 4: MATCHDAY GATE & QR CHECK-IN DESK */}
+          {activeTab === 'checkin' && (
+            <div className="space-y-4 mt-3">
+              {/* Camera Scanner Viewfinder */}
+              <div className="bg-cardbg rounded-2xl border border-slate-800 p-4">
+                <div className="flex justify-between items-center mb-3">
+                  <div>
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200">Hardware QR Gate Scanner</h3>
+                    <p className="text-[10px] text-slate-400">Scan badge string (e.g. RKM-4172-RIT)</p>
+                  </div>
+                  <button 
+                    onClick={toggleCamera}
+                    className={`px-3 py-1 rounded-xl text-xs font-bold flex items-center space-x-1 border ${cameraActive ? 'bg-red-600 text-white border-red-500' : 'bg-turf text-slate-950 border-turf'}`}
+                  >
+                    <i data-lucide="camera" className="w-3.5 h-3.5"></i>
+                    <span>{cameraActive ? 'Stop' : 'Start Camera'}</span>
+                  </button>
+                </div>
+
+                {cameraActive && (
+                  <div className="relative rounded-xl overflow-hidden border border-slate-700 bg-black mb-3">
+                    <div id="reader" className="w-full"></div>
+                  </div>
+                )}
+
+                {/* Manual Fallback Search Input */}
+                <div className="relative mt-2">
+                  <i data-lucide="search" className="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+                  <input 
+                    type="text" 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="Worn badge? Search Name, ID or Phone..."
+                    className="w-full pl-9 pr-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-gold"
+                  />
+                </div>
+              </div>
+
+              {/* Scanned Badge Modal / Action Card */}
+              {scannedPlayer && (
+                <div className="bg-gradient-to-b from-panelbg to-cardbg border-2 border-gold rounded-2xl p-4 shadow-2xl relative">
+                  <button 
+                    onClick={() => setScannedPlayer(null)}
+                    className="absolute top-3 right-3 text-slate-400 hover:text-white"
+                  >
+                    <i data-lucide="x" className="w-4 h-4"></i>
+                  </button>
+
+                  <span className="px-2 py-0.5 bg-gold/10 text-gold text-[10px] font-bold rounded border border-gold/30">
+                    BADGE DETECTED
+                  </span>
+                  
+                  <div className="my-3">
+                    <h2 className="text-base font-black text-slate-100">{scannedPlayer['Full Name']}</h2>
+                    <p className="text-xs text-gold font-mono">{scannedPlayer.Player_ID}</p>
+                    <p className="text-[11px] text-slate-300 mt-1">{scannedPlayer['Assigned Team'] || 'Team Unassigned'}</p>
+                  </div>
+
+                  {/* Jersey Verification details */}
+                  <div className="grid grid-cols-2 gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 text-xs my-3">
+                    <div>
+                      <p className="text-[9px] text-slate-400 uppercase font-semibold">Jersey Print</p>
+                      <p className="font-bold text-slate-200">{scannedPlayer['Name to Print on Jersey Back'] || scannedPlayer['Full Name']}</p>
+                    </div>
+                    <div>
+                      <p className="text-[9px] text-slate-400 uppercase font-semibold">Kit Size & No</p>
+                      <p className="font-bold text-gold font-mono">{scannedPlayer['Jersey Size'] || 'L'} (No: #{scannedPlayer['Jersey Number'] || '10'})</p>
+                    </div>
+                  </div>
+
+                  {/* Checkin / Refund Action */}
+                  {isAdmin ? (
+                    <div className="space-y-2 mt-4">
+                      {scannedPlayer['Attendance Check-In'] === 'CHECKED_IN' ? (
+                        <div className="p-2.5 bg-turf/10 border border-turf/40 rounded-xl text-center">
+                          <p className="text-xs font-bold text-turf">✓ Already Checked-In</p>
+                          <p className="text-[10px] text-slate-400">{scannedPlayer['Refund Status']}</p>
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-2">
+                          <button 
+                            onClick={() => processPlayerCheckin(scannedPlayer, 'CASH')}
+                            className="py-2.5 bg-turf hover:bg-emerald-600 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center space-x-1"
+                          >
+                            <i data-lucide="check" className="w-3.5 h-3.5"></i>
+                            <span>Check-In + ₹100 Cash</span>
+                          </button>
+                          <button 
+                            onClick={() => processPlayerCheckin(scannedPlayer, 'UPI')}
+                            className="py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs rounded-xl flex items-center justify-center space-x-1"
+                          >
+                            <i data-lucide="smartphone" className="w-3.5 h-3.5"></i>
+                            <span>Check-In + ₹100 UPI</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-2.5 bg-amber-950/40 border border-amber-600/30 text-amber-200 text-xs rounded-xl text-center">
+                      Unlock Admin Mode with PIN to trigger Check-In and ₹100 deposit refund.
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Fallback Search Matches List */}
+              {searchQuery && (
+                <div className="space-y-2">
+                  <p className="text-[10px] text-slate-400 uppercase font-semibold">Search Matches ({filteredSearchPlayers.length})</p>
+                  {filteredSearchPlayers.map((p, i) => (
+                    <div 
+                      key={i} 
+                      onClick={() => setScannedPlayer(p)}
+                      className="p-3 bg-cardbg border border-slate-800 rounded-xl flex justify-between items-center cursor-pointer hover:border-gold"
+                    >
+                      <div>
+                        <p className="font-bold text-xs text-slate-200">{p['Full Name']}</p>
+                        <p className="text-[10px] text-gold font-mono">{p.Player_ID}</p>
+                      </div>
+                      <div className="text-right">
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p['Attendance Check-In'] === 'CHECKED_IN' ? 'bg-turf/20 text-turf border border-turf/30' : 'bg-slate-800 text-slate-400'}`}>
+                          {p['Attendance Check-In'] === 'CHECKED_IN' ? 'CHECKED-IN' : 'PENDING'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Bottom Fixed Navigation Bar */}
+          <nav className="fixed bottom-0 left-0 right-0 max-w-md mx-auto bg-stadium/95 backdrop-blur-md border-t border-slate-800 px-4 py-2 flex justify-around items-center z-40">
+            <button 
+              onClick={() => setActiveTab('matchcenter')}
+              className={`flex flex-col items-center py-1 px-2 ${activeTab === 'matchcenter' ? 'text-gold' : 'text-slate-400'}`}
+            >
+              <i data-lucide="activity" className="w-4 h-4"></i>
+              <span className="text-[9px] font-bold mt-1">Match Center</span>
+            </button>
+            <button 
+              onClick={() => setActiveTab('leaderboard')}
+              className={`flex flex-col items-center py-1 px-2 ${activeTab === 'leaderboard' ? 'text-gold' : 'text-slate-400'}`}
+            >
+              <i data-lucide="trophy" className="w-4 h-4"></i>
+              <span className="text-[9px] font-bold mt-1">Leaders</span>
+            </button>
+            <button 
+              onClick={() => setActiveTab('squads')}
+              className={`flex flex-col items-center py-1 px-2 ${activeTab === 'squads' ? 'text-gold' : 'text-slate-400'}`}
+            >
+              <i data-lucide="users" className="w-4 h-4"></i>
+              <span className="text-[9px] font-bold mt-1">Squads</span>
+            </button>
+            <button 
+              onClick={() => setActiveTab('checkin')}
+              className={`flex flex-col items-center py-1 px-2 ${activeTab === 'checkin' ? 'text-gold' : 'text-slate-400'}`}
+            >
+              <i data-lucide="qr-code" className="w-4 h-4"></i>
+              <span className="text-[9px] font-bold mt-1">Gate Check-In</span>
+            </button>
+          </nav>
+
+          {/* Committee 4-Digit PIN Unlock Modal */}
+          {showPinModal && (
+            <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-cardbg border border-gold/40 rounded-2xl p-5 w-full max-w-xs space-y-4">
+                <div className="text-center">
+                  <div className="w-10 h-10 bg-gold/10 rounded-full border border-gold/30 flex items-center justify-center mx-auto mb-2 text-gold">
+                    <i data-lucide="lock" className="w-5 h-5"></i>
+                  </div>
+                  <h3 className="font-black text-sm text-slate-100 uppercase tracking-wider">Committee Authorization</h3>
+                  <p className="text-[11px] text-slate-400">Enter your 4-digit Master PIN</p>
+                </div>
+
+                <input 
+                  type="password" 
+                  maxLength="4"
+                  value={pinInput}
+                  onChange={(e) => setPinInput(e.target.value)}
+                  placeholder="••••"
+                  className="w-full text-center py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xl font-mono tracking-widest text-gold focus:outline-none focus:border-gold"
+                />
+
+                {pinError && <p className="text-center text-[10px] text-red-400 font-semibold">{pinError}</p>}
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button 
+                    onClick={() => { setShowPinModal(false); setPinError(''); setPinInput(''); }}
+                    className="py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-bold"
+                  >
+                    Cancel
+                  </button>
+                  <button 
+                    onClick={handleVerifyPin}
+                    className="py-2 bg-gold text-slate-950 font-black rounded-xl text-xs hover:bg-goldlight"
+                  >
+                    Unlock
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
